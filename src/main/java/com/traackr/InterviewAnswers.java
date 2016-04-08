@@ -11,6 +11,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -20,63 +22,64 @@ import java.util.stream.Stream;
  */
 public class InterviewAnswers {
 
-    private Map<String, AtomicInteger> firstNames;
-    private Map<String, AtomicInteger> lastNames;
-    private Map<String, AtomicInteger> fullNames;
+    private Map<String, Integer> firstNames;
+    private Map<String, Integer> lastNames;
+    private Map<String, Integer> fullNames;
+    private List<String> seenFirstNames;
+    private List<String> seenLastNames;
 
 
     public InterviewAnswers() throws IOException {
+        this.firstNames = new HashMap<String, Integer>();
+        this.lastNames = new HashMap<String, Integer>();
+        this.fullNames = new HashMap<String, Integer>();
+        this.seenFirstNames = new ArrayList<String>();
+        this.seenLastNames = new ArrayList<String>();
+
+        parseData();
     }
 
 
-    public HashMap<String, Integer> getNames(String nameType) throws IOException {
+    public void parseData() throws IOException {
         File file = new File("/Users/jbhambhani/Downloads/People_Name_Coding_Test/coding-test-data.txt");
         Scanner input = new Scanner(file);
-        HashMap<String, Integer> names = new HashMap<String, Integer>();
         int lineNum = 0;
 
         while (input.hasNext()) {
             String nextLine = input.nextLine();
             if (lineNum % 2 == 0) {
-                List<String> splitLine = Arrays.asList(nextLine.split(" -- "));
-                List<String> registeredName = Arrays.asList(splitLine.get(0).split(", "));
-                String usedName;
-                if (nameType.equals("firstname")) {
-                    usedName = registeredName.get(1);
-                } else if (nameType.equals("lastname")) {
-                    usedName = registeredName.get(0);
-                } else if (nameType.equals("fullname")) {
-                    usedName = registeredName.get(1) + " " + registeredName.get(0);
-                } else usedName = "error: no name type suggested";
 
-
-                if (names.containsKey(usedName)) {
-                    names.put(usedName, names.get(usedName) + 1);
-                } else {
-                    names.put(usedName, new Integer(1));
-                }
-
-
+                List<String> splitLine = getTokens("[a-zA-Z, ']+", nextLine);
+                List<String> registeredName = getTokens("[a-zA-Z']+", splitLine.get(0));
+                System.out.println(registeredName);
+                String firstName = registeredName.get(1);
+                addToSeen(firstName, this.seenFirstNames);
+                addToCounts(firstName, this.firstNames);
+                String lastName = registeredName.get(0);
+                addToSeen(lastName, this.seenLastNames);
+                addToCounts(lastName, this.lastNames);
+                String fullName = firstName + " " + lastName;
+                addToCounts(fullName, this.fullNames);
             }
             lineNum++;
         }
         input.close();
-        ;
-        return names;
     }
 
-    // lovin those lambdas!
-    public Set<String> getUniqueNames(String nameType) throws IOException {
-        return getNames(nameType).entrySet()
+
+
+
+    public Set<String> getUniqueNames(Map<String, Integer> nameCounts) throws IOException {
+        return nameCounts.entrySet()
                 .stream()
                 .filter(entry -> entry.getValue().intValue() == 1)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
-    // datasets calculated from raw multiple times to address each question individually
-    public LinkedHashMap<String, Integer> getMostPopular(String nameType) throws IOException {
-        LinkedHashMap<String, Integer> result = getNames(nameType)
+
+    public LinkedHashMap<String, Integer> getMostPopular(Map<String, Integer> nameCounts) throws IOException {
+        LinkedHashMap<String, Integer> result = nameCounts
                 .entrySet()
                 .stream()
                 .sorted(byValue.reversed())
@@ -91,47 +94,92 @@ public class InterviewAnswers {
         return result;
     }
 
-    private Comparator<Map.Entry<String, Integer>> byValue = (entry1, entry2) -> entry1.getValue().compareTo(entry2.getValue());
 
 
-    // found it hard to reuse earlier code for this one
     public List<String> getModifiedNames(int nameCount) throws IOException {
-        File file = new File("/Users/jbhambhani/Downloads/People_Name_Coding_Test/coding-test-data.txt");
-        Scanner input = new Scanner(file);
-        int lineNum = 0;
         List<String> modifiedNames = new ArrayList<String>();
-        List<String> seenFirstNames = new ArrayList<String>();
-        List<String> seenLastNames = new ArrayList<String>();
+        List<String> croppedFirstNames = this.seenFirstNames.subList(0, nameCount);
+        List<String> croppedLastNames = this.seenLastNames.subList(0, nameCount);
 
-        while (lineNum < nameCount) {
-            String nextLine = input.nextLine();
-            if (lineNum % 2 == 0) {
-                List<String> splitLine = Arrays.asList(nextLine.split(" -- "));
-                List<String> registeredName = Arrays.asList(splitLine.get(0).split(", "));
-                String firstName = registeredName.get(1);
-                String lastName = registeredName.get(0);
-                if (seenFirstNames.contains(firstName)) {
-                    continue;
-                }
-                else {
-                    seenFirstNames.add(firstName);
-                }
-                if (seenLastNames.contains(lastName)) {
-                    continue;
-                }
-                else {
-                    seenLastNames.add(lastName);
-                }
-            }
-            lineNum ++;
-        }
-
-        int offset = seenFirstNames.size() - 1 % seenFirstNames.size();
-        for (int i = 0; i < seenFirstNames.size(); ++i) {
-            int j = (i + offset) % seenFirstNames.size();
-            modifiedNames.add(seenFirstNames.get(j) + " " + seenLastNames.get(i));
+        int offset = croppedFirstNames.size() - 1 % croppedFirstNames.size();
+        for (int i = 0; i < croppedFirstNames.size(); ++i) {
+            int j = (i + offset) % croppedFirstNames.size();
+            modifiedNames.add(croppedFirstNames.get(j) + " " + croppedLastNames.get(i));
         }
         return modifiedNames;
     }
+
+    public Map<String, Integer> getFirstNames() {
+        return firstNames;
+    }
+
+    public void setFirstNames(Map<String, Integer> firstNames) {
+        this.firstNames = firstNames;
+    }
+
+    public Map<String, Integer> getLastNames() {
+        return lastNames;
+    }
+
+    public void setLastNames(Map<String, Integer> lastNames) {
+        this.lastNames = lastNames;
+    }
+
+    public Map<String, Integer> getFullNames() {
+        return fullNames;
+    }
+
+    public void setFullNames(Map<String, Integer> fullNames) {
+        this.fullNames = fullNames;
+    }
+
+    public List<String> getSeenFirstNames() {
+        return seenFirstNames;
+    }
+
+    public void setSeenFirstNames(List<String> seenFirstNames) {
+        this.seenFirstNames = seenFirstNames;
+    }
+
+    public List<String> getSeenLastNames() {
+        return seenLastNames;
+    }
+
+    public void setSeenLastNames(List<String> seenLastNames) {
+        this.seenLastNames = seenLastNames;
+    }
+
+    private Comparator<Map.Entry<String, Integer>> byValue = (entry1, entry2) -> entry1.getValue().compareTo(entry2.getValue());
+
+    private void addToSeen (String name, List<String> seen) {
+        if (seen.contains(name)) {
+
+        } else {
+            seen.add(name);
+        }
+    }
+
+    private void addToCounts (String name, Map<String, Integer> names) {
+        if (names.containsKey(name)) {
+            names.put(name, names.get(name) + 1);
+        } else {
+            names.put(name, new Integer(1));
+        }
+    }
+
+    protected List<String> getTokens(String pattern, String line)
+    {
+        ArrayList<String> tokens = new ArrayList<String>();
+        Pattern tokSplitter = Pattern.compile(pattern);
+        Matcher m = tokSplitter.matcher(line);
+
+        while (m.find()) {
+            tokens.add(m.group());
+        }
+
+
+        return tokens;
+    }
+
 
 }

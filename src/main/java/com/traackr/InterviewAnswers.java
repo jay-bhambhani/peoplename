@@ -51,7 +51,6 @@ public class InterviewAnswers {
 
                 List<String> splitLine = getTokens("[a-zA-Z, ']+", nextLine);
                 List<String> registeredName = getTokens("[a-zA-Z']+", splitLine.get(0));
-                System.out.println(registeredName);
                 String firstName = registeredName.get(1);
                 addToSeen(firstName, this.seenFirstNames);
                 addToCounts(firstName, this.firstNames);

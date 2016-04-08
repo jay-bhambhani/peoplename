@@ -17,11 +17,11 @@ public class InterviewApplication {
 		SpringApplication.run(InterviewApplication.class, args);
 		InterviewAnswers interviewAnswers = new InterviewAnswers();
 		Set<String> uniqueFirstNames= interviewAnswers.getUniqueNames(interviewAnswers.getFirstNames());
-		System.out.println("unique first names: " + uniqueFirstNames);
+		System.out.println("unique first names: " + uniqueFirstNames.size());
 		Set<String> uniqueLastNames= interviewAnswers.getUniqueNames(interviewAnswers.getLastNames());
-		System.out.println("unique last names: " + uniqueLastNames);
+		System.out.println("unique last names: " + uniqueLastNames.size());
 		Set<String> uniqueFullNames= interviewAnswers.getUniqueNames(interviewAnswers.getFullNames());
-		System.out.println("unique full names: " + uniqueFullNames);
+		System.out.println("unique full names: " + uniqueFullNames.size());
 		LinkedHashMap<String, Integer> popularFirstNames= interviewAnswers.getMostPopular(interviewAnswers.getFirstNames());
 		System.out.println("most popular first names: " + popularFirstNames);
 		LinkedHashMap<String, Integer> popularLastNames= interviewAnswers.getMostPopular(interviewAnswers.getLastNames());
